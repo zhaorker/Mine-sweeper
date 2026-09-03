@@ -287,16 +287,7 @@ bool Game::start(){
 				map[focus_y][focus_x].loss_focus();
 				if(focus_y>0){
 					focus_y--;
-				}
-				map[focus_y][focus_x].set_focus();
-				break;
-			}
-			case 's':{
-				map[focus_y][focus_x].loss_focus();
-				if(focus_y<len_y-1){
-					focus_y++;
-				}
-				map[focus_y][focus_x].set_focus();
+				}s;
 				break;
 			}
 			case 'a':{
@@ -433,12 +424,12 @@ bool Game::run(){
 		if(check_win()){
             game_win = true;
            	std::cout<<"\nYou Win!\n"<<std::endl;
-			while(conin.getch()!='\r'){}
+			conin.getch();
            	return true;
         }
 		if(game_over){
 			std::cout<<"\nGame Over! You hit a mine!\n"<<std::endl;
-			while(conin.getch()!='\r');
+			conin.getch();
 			return true;
 		}
 	}
@@ -578,7 +569,8 @@ void Save_Manager::init(){
         	save_list.push_back(info);
 		}catch(std::exception&e){
 			std::cerr<<"game "<<info.game_name<<" is destroyed."<<std::flush;
-			while(conin.getch()!='\r'){}putchar('\n');
+			conin.getch();
+			putchar('\n');
 		}
 		if(ifs.fail()&&!ifs.eof()&&!ifs.bad()){
 			ifs.clear();
@@ -602,7 +594,7 @@ void Save_Manager::save_write(){
 			info.game.save(ofs);
 		}catch(std::exception&e){
 			std::cerr<<e.what()<<std::endl;
-			while(conin.getch()!='\r');
+			conin.getch();
 			ofs.close();
 			return;
 		}
@@ -667,7 +659,7 @@ void Save_Manager::run(){
 		save_write();
 	}catch(std::exception&e){		
 		std::cerr<<e.what()<<std::endl<<"Press any ker to continue."<<std::flush;
-		while(conin.getch()!='\r');
+		conin.getch();
 	}
 	std::cout<<"\033[1J\033[H"<<std::flush;
 }
@@ -683,7 +675,7 @@ void Save_Manager::add_game(Game game,std::string name){
 	}
 	catch(std::exception&e){
 		std::cerr<<e.what()<<std::endl<<"Press any key to continue."<<std::flush;
-		while(conin.getch()!='\r');
+		conin.getch();
 		save_list.clear();
 	}
 }
