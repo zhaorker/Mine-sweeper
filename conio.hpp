@@ -33,7 +33,7 @@ public:
     Conioer& operator=(const Conioer&)=delete;
     Conioer(Conioer&&)=delete;
     Conioer& operator=(Conioer&&)=delete;
-    Conioer():is_valid{false},save_state{}
+    Conioer():is_valid{false}
     {
 #ifdef _WIN32
         is_valid=true;
@@ -56,7 +56,7 @@ public:
     int getch()
     {
 #ifdef _WIN32
-        if(!is_valid) return ;
+        if(!is_valid) return 0;
         return ::_getch();
 #else
         if(!is_valid || is_standard) return 0;
