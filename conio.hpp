@@ -1,6 +1,9 @@
 #ifndef CONIO_HPP
 #define CONIO_HPP 
 
+#include<utility>
+#include<cstdint>
+
 #if defined(_WIN32)
 
 #include<conio.h>
@@ -13,17 +16,16 @@
 #include<unistd.h>
 #include<poll.h>
 #include<sys/ioctl.h>
-#include<utility>
 
 #endif
 
 class Conioer
 {
 private:
-    static int object_count;
-    static bool is_standard;
     #if defined(__linux__)
+    static inline bool is_standard=true;
     termios save_state;
+    static inline int object_count=0;
     #endif
     bool is_valid;
 public:
@@ -31,73 +33,65 @@ public:
     Conioer& operator=(const Conioer&)=delete;
     Conioer(Conioer&&)=delete;
     Conioer& operator=(Conioer&&)=delete;
-    Conioer()
+    Conioer():is_valid{false},save_state{}
     {
-        if(object_count==1)
-        {
-            is_valid=false;
-            return;
-        }
+#ifdef _WIN32
+        is_valid=true;
+#else
+        if(object_count!=0) return;
+        if(::tcgetattr(STDIN_FILENO,&save_state)!=0) return;
         is_valid=true;
         ++object_count;
-        #if defined(__linux__)
-        ::tcgetattr(0,&save_state);
-        #endif
         unlock();
+#endif
     }
     ~Conioer()
     {
+#ifdef __linux__
+        if(!is_valid) return;
         lock();
         --object_count;
+#endif
     }
     int getch()
     {
-        if(!is_valid || is_standard)
-            return 0;
-        char a=0;
-        #if defined(_WIN32)
-        a=::getch();
-        #else
-        read(0,&a,1);
-        #endif
-        return a;
+#ifdef _WIN32
+        if(!is_valid) return ;
+        return ::_getch();
+#else
+        if(!is_valid || is_standard) return 0;
+        unsigned char result;
+        if(::read(STDIN_FILENO,&result,1)<=0) return 0;
+        return static_cast<int>(result);
+#endif
     }
     bool kbhit()
     {
-        if(!is_valid)
-            return false;
+#ifdef _WIN32
+        return is_valid && ::_kbhit();
+#else
+        if(!is_valid || is_standard) return false;
 
-        #if defined(_WIN32)
-
-        return ::kbhit();
-        
-        #else
-        
-        pollfd hint;
-        hint.fd=0;
-        hint.events=POLLIN;
-        int ret=::poll(&hint,1,0);
-        if(ret==-1)
-            return false;
-        if(hint.revents&POLLIN)
-            return true;
-        return false;
-        
-        #endif
+        pollfd fd{};
+        fd.fd=STDIN_FILENO;
+        fd.events=POLLIN;
+        if(::poll(&fd,1,0)<=0) return false;
+        return (fd.revents & POLLIN) !=0;
+#endif
     }
     //lock_guard<Conioer>
     void lock()
     {
-        #if defined(__linux__)
+#if defined(__linux__)
         if(!is_valid || is_standard)
             return;
-        tcsetattr(0,TCSANOW,&save_state);
-        #endif
+        tcsetattr(STDIN_FILENO,TCSANOW,&save_state);
         is_standard=true;
-    }
+#endif
+}
     void unlock()
     {
-        #if defined(__linux__)
+#if defined(__linux__)
         if(!is_valid || !is_standard)
             return;
         termios tstate=save_state;
@@ -117,11 +111,11 @@ public:
                             ECHO);
         tstate.c_cc[VMIN]=1;
         tstate.c_cc[VTIME]=0;
-        tcsetattr(0,TCSANOW/*立即执行*/,&tstate);
-        #endif
+        tcsetattr(STDIN_FILENO,TCSANOW/*立即执行*/,&tstate);
         is_standard=false;
+#endif
     }
-    #if defined(__linux__)
+#if defined(__linux__)
     //行数：列数
     static std::pair<int,int> size()
     {
@@ -129,7 +123,7 @@ public:
         ::ioctl(STDOUT_FILENO,TIOCGWINSZ,&size_pair);
         return {size_pair.ws_row,size_pair.ws_col};
     }
-    #endif
+#endif
 #if defined(_WIN32)
     static std::pair<int, int> size()
     {
@@ -149,7 +143,5 @@ public:
         return is_valid;
     }
 };
-int Conioer::object_count=0;
-bool Conioer::is_standard=true;
 
 #endif

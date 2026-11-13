@@ -287,7 +287,7 @@ bool Game::start(){
 				map[focus_y][focus_x].loss_focus();
 				if(focus_y>0){
 					focus_y--;
-				}s;
+				};
 				break;
 			}
 			case 'a':{
